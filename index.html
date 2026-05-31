@@ -627,25 +627,33 @@ document.getElementById('word-input').addEventListener('keydown', e => { if (e.k
 let dbRowCount = 0;
 
 async function initFromDB() {
-  const rows = await dbFetchAll();
-  dbRowCount = Array.isArray(rows) ? rows.length : 0;
-
-  if (dbRowCount === 0) {
-    // Première utilisation : insérer les seeds dans la DB une seule fois
-    for (const s of SEEDS) {
-      await dbInsert(s.text, s.temp, s.style, s.aff, 'seed');
-    }
-    const seeded = await dbFetchAll();
-    dbRowCount = Array.isArray(seeded) ? seeded.length : 0;
-    const ordered = [...(seeded || [])].reverse();
-    for (const row of ordered) addOrUpdate(row.mot, row.temperature, row.style, row.affirmation, false);
-  } else {
-    // Chargement normal depuis la DB uniquement
-    const ordered = [...rows].reverse();
-    for (const row of ordered) addOrUpdate(row.mot, row.temperature, row.style, row.affirmation, false);
-    rows.slice(0, 6).reverse().forEach(r => addLog(r.mot, r.ip_masquee, r.created_at));
-  }
+  // 1. Affichage immédiat des seeds en local (offline-first)
+  for (const s of SEEDS) addOrUpdate(s.text, s.temp, s.style, s.aff, false);
   updateCount();
+
+  // 2. Synchronisation DB en arrière-plan
+  try {
+    const rows = await dbFetchAll();
+    const count = Array.isArray(rows) ? rows.length : 0;
+
+    if (count === 0) {
+      // DB vide : insérer les seeds
+      for (const s of SEEDS) {
+        await dbInsert(s.text, s.temp, s.style, s.aff, 'seed');
+      }
+      dbRowCount = SEEDS.length;
+    } else {
+      // DB a des données : mettre à jour l'affichage depuis la DB
+      dbRowCount = count;
+      const ordered = [...rows].reverse();
+      for (const row of ordered) addOrUpdate(row.mot, row.temperature, row.style, row.affirmation, false);
+      rows.slice(0, 6).reverse().forEach(r => addLog(r.mot, r.ip_masquee, r.created_at));
+      updateCount();
+    }
+  } catch(e) {
+    // DB inaccessible : on garde l'affichage local, la page reste utilisable
+    console.warn('DB inaccessible, mode local :', e);
+  }
 }
 
 setInterval(async () => {
