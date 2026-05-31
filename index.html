@@ -3,509 +3,762 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Les mots sont plastiques</title>
+<title>Art — un autre mot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@300;400&family=Nunito:wght@400;600&family=Outfit:wght@300;400;500&family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Jost:wght@200;300;400&display=swap');
-*{margin:0;padding:0;box-sizing:border-box}
-#app{width:100%;height:600px;background:#f7f4ee;position:relative;overflow:hidden;font-family:'Jost',sans-serif;cursor:grab}
-#app.dragging{cursor:grabbing}
-#c3d{width:100%;height:100%;position:absolute;top:0;left:0}
-#header{position:absolute;top:1.4rem;left:0;right:0;text-align:center;pointer-events:none;z-index:10}
-#header h1{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:12px;letter-spacing:.22em;color:#8a7f74;text-transform:uppercase}
-#wcount{font-size:10px;color:#b0a898;letter-spacing:.1em;margin-top:3px}
-#tooltip{position:absolute;pointer-events:none;z-index:30;opacity:0;transition:opacity .2s ease;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:11px;color:#8a7f74;letter-spacing:.08em;background:rgba(247,244,238,.9);padding:3px 8px;border:.5px solid #c8c0b0;border-radius:2px;transform:translate(-50%,-130%);white-space:nowrap}
-#ui{position:absolute;bottom:0;left:0;right:0;z-index:20;opacity:0;transition:opacity 1.2s ease;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:.55rem;padding-bottom:1.2rem}
-#ui.on{opacity:1;pointer-events:all}
-#invite{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:300;font-size:14px;color:#5a5248;letter-spacing:.04em}
-#params{display:flex;gap:1.4rem;align-items:flex-start;background:rgba(247,244,238,.82);border:.5px solid #c8c0b0;border-radius:2px;padding:7px 14px;backdrop-filter:blur(10px)}
-.pg{display:flex;flex-direction:column;align-items:center;gap:3px}
-.pl{font-size:9px;letter-spacing:.14em;color:#8a7f74;text-transform:uppercase}
-.pe{display:flex;align-items:center;gap:5px;font-size:10px;color:#5a5248}
-.pe input[type=range]{width:72px;accent-color:#2a2520;cursor:pointer}
-#irow{display:flex;align-items:center;background:rgba(247,244,238,.88);border:.5px solid #c8c0b0;border-radius:2px;backdrop-filter:blur(10px);overflow:hidden}
-#wi{background:transparent;border:none;outline:none;padding:8px 13px;font-family:'Jost',sans-serif;font-weight:300;font-size:14px;color:#2a2520;width:155px;letter-spacing:.06em}
-#wi::placeholder{color:#b0a898;font-style:italic}
-#sbtn{background:#2a2520;border:none;color:#f7f4ee;padding:8px 15px;cursor:pointer;font-family:'Jost',sans-serif;font-weight:300;font-size:12px;letter-spacing:.1em;transition:background .2s}
-#sbtn:hover{background:#4a3f35}
-#prev{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%);font-family:'Cormorant Garamond',serif;font-weight:300;pointer-events:none;opacity:0;transition:opacity .25s;letter-spacing:.08em;z-index:15;white-space:nowrap}
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: #F6F4EF;
+  color: #1E1E1E;
+  font-family: 'DM Mono', monospace;
+  overflow: hidden;
+  height: 100vh; width: 100vw;
+}
+
+/* ─── HEADER ─── */
+#header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+  padding: 28px 44px;
+  pointer-events: none;
+}
+#header h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 0.95rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #1E1E1E;
+}
+#header .sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.58rem;
+  color: #999;
+  letter-spacing: 0.12em;
+  margin-top: 5px;
+}
+
+/* ─── LOG ─── */
+#log {
+  position: fixed; right: 36px; top: 90px; bottom: 160px;
+  width: 190px; z-index: 5;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  gap: 10px; pointer-events: none; overflow: hidden;
+}
+.log-entry {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.57rem;
+  color: #1E1E1E;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  line-height: 1.7;
+  text-align: right;
+}
+.log-entry.visible { opacity: 0.16; }
+.log-entry .lw { font-style: italic; }
+.log-entry .lip { color: #aaa; }
+
+/* ─── WORD COUNT ─── */
+#word-count {
+  position: fixed; left: 44px; bottom: 38px; z-index: 10;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.57rem;
+  color: #C0BAB0;
+  letter-spacing: 0.1em;
+}
+
+/* ─── FORM ─── */
+#form-container {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
+  padding: 18px 44px 28px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+#form-label {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #999;
+}
+#form-row {
+  display: flex; align-items: center; gap: 14px;
+}
+#word-input {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem; font-weight: 300;
+  background: transparent;
+  border: none; border-bottom: 1px solid #C8C2B8;
+  outline: none; padding: 5px 0;
+  width: 240px; color: #1E1E1E;
+  text-align: center; letter-spacing: 0.1em;
+}
+#word-input::placeholder { color: #C8C2B8; font-style: italic; }
+#submit-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.6rem; letter-spacing: 0.18em;
+  background: transparent;
+  border: 1px solid #1E1E1E; color: #1E1E1E;
+  padding: 8px 18px; cursor: pointer;
+  text-transform: uppercase;
+  transition: background 0.18s, color 0.18s;
+}
+#submit-btn:hover { background: #1E1E1E; color: #F6F4EF; }
+
+/* ─── SLIDERS ─── */
+#sliders { display: flex; gap: 36px; align-items: center; }
+.slider-group { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.sl-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.53rem; letter-spacing: 0.1em;
+  color: #888; text-transform: uppercase;
+}
+.sl-ends {
+  display: flex; justify-content: space-between;
+  width: 100%;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.49rem; color: #C0BAB0; margin-top: 1px;
+}
+input[type=range] {
+  -webkit-appearance: none;
+  width: 110px; height: 1px;
+  background: #C8C2B8; outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 7px; height: 7px;
+  background: #1E1E1E; border-radius: 50%;
+}
+
+/* ─── LIVE PREVIEW ─── */
+#word-preview {
+  height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+#preview-text {
+  font-size: 1.1rem;
+  transition: color 0.2s, letter-spacing 0.2s, opacity 0.2s, font-family 0.2s;
+}
+
+/* ─── STATUS ─── */
+#status-msg {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.58rem; color: #888;
+  letter-spacing: 0.1em; height: 13px;
+  transition: opacity 0.5s;
+}
+
+/* ─── CANVAS ─── */
+#canvas-container {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%; z-index: 1;
+}
 </style>
 </head>
 <body>
 
-<div id="app">
-  <div id="c3d"></div>
-  <div id="header">
-    <h1>Les mots sont plastiques</h1>
-    <div id="wcount">0 mots uniques déposés</div>
-  </div>
-  <div id="prev"></div>
-  <div id="tooltip"></div>
-  <div id="ui">
-    <div id="invite">Quel mot portez-vous ?</div>
-    <div id="params">
-      <div class="pg">
-        <div class="pl">Température</div>
-        <div class="pe"><span style="color:#5b8fa8">froid</span><input type="range" id="pt" min="0" max="100" value="50"><span style="color:#c06030">chaud</span></div>
-      </div>
-      <div class="pg">
-        <div class="pl">Style</div>
-        <div class="pe"><span>doux</span><input type="range" id="ps" min="0" max="100" value="50"><span>tranchant</span></div>
-      </div>
-      <div class="pg">
-        <div class="pl">Affirmation</div>
-        <div class="pe"><span>moins</span><input type="range" id="pa" min="0" max="100" value="50"><span>plus</span></div>
-      </div>
-    </div>
-    <div id="irow">
-      <input type="text" id="wi" placeholder="un mot…" maxlength="30" autocomplete="off">
-      <button id="sbtn">déposer</button>
-    </div>
-  </div>
+<div id="header">
+  <h1>Art —</h1>
+  <div class="sub">proposer un autre mot que « primitif »</div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<div id="log"></div>
+<div id="canvas-container"></div>
+<div id="word-count"></div>
+
+<div id="form-container">
+  <div id="form-label">déposer un mot</div>
+  <div id="form-row">
+    <input type="text" id="word-input" placeholder="votre mot…" maxlength="30" autocomplete="off" spellcheck="false">
+    <button id="submit-btn">déposer</button>
+  </div>
+  <div id="word-preview"><span id="preview-text"></span></div>
+  <div id="sliders">
+    <div class="slider-group">
+      <div class="sl-label">température</div>
+      <input type="range" id="sl-temp" min="0" max="100" value="50">
+      <div class="sl-ends"><span>froid</span><span>chaud</span></div>
+    </div>
+    <div class="slider-group">
+      <div class="sl-label">forme</div>
+      <input type="range" id="sl-style" min="0" max="100" value="50">
+      <div class="sl-ends"><span>ronde</span><span>tranchée</span></div>
+    </div>
+    <div class="slider-group">
+      <div class="sl-label">affirmation</div>
+      <input type="range" id="sl-aff" min="0" max="100" value="50">
+      <div class="sl-ends"><span>poétique</span><span>politique</span></div>
+    </div>
+  </div>
+  <div id="status-msg"></div>
+</div>
+
 <script>
-const SEEDS=[
-  {text:'premier',temp:48,style:22,aff:78},
-  {text:'non-occidental',temp:28,style:68,aff:55},
-  {text:'extra-européen',temp:32,style:60,aff:50},
-  {text:'du monde',temp:72,style:18,aff:88},
-  {text:'autochtone',temp:44,style:55,aff:65},
-  {text:'tribal',temp:65,style:72,aff:42},
-  {text:'traditionnel',temp:38,style:28,aff:60},
-  {text:'terrial',temp:78,style:48,aff:70},
-  {text:'fondational',temp:42,style:38,aff:82},
-  {text:'basical',temp:50,style:30,aff:58},
-  {text:'ethnoprinceps',temp:22,style:80,aff:75},
-  {text:'priméal',temp:60,style:52,aff:68},
-  {text:'ancestral',temp:35,style:45,aff:72},
-  {text:'racinaire',temp:68,style:40,aff:80}
-];
+// ═══════════════════════════════════════════════════════════════
+//  SUPABASE
+// ═══════════════════════════════════════════════════════════════
+const SUPA_URL = 'https://dxefvcrtgsblvrywwxca.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4ZWZ2Y3J0Z3NibHZyeXd3eGNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNDMyNDMsImV4cCI6MjA5NTgxOTI0M30.5lxvRgwQTnZUkuqGS9cKrP9Ae42nOtgattqY7fZybmg';
+const H = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json' };
 
-const appEl = document.getElementById('app');
-const cont  = document.getElementById('c3d');
-const W = cont.offsetWidth, H = cont.offsetHeight;
+async function dbFetchAll() {
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/soumissions?select=mot,temperature,style,affirmation,ip_masquee,created_at&order=created_at.desc&limit=500`, { headers: H });
+    if (!r.ok) return [];
+    return await r.json();
+  } catch { return []; }
+}
 
-/* ── Scene ── */
-const scene    = new THREE.Scene();
-const camera   = new THREE.PerspectiveCamera(52, W/H, 0.1, 100);
+async function dbInsert(mot, temperature, style, affirmation, ip_masquee) {
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/soumissions`, {
+      method: 'POST',
+      headers: { ...H, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ mot, temperature, style, affirmation, ip_masquee })
+    });
+    return r.ok;
+  } catch { return false; }
+}
+
+async function getIP() {
+  try {
+    const r = await fetch('https://api.ipify.org?format=json');
+    const d = await r.json();
+    const p = d.ip.split('.');
+    return p.length === 4 ? `${p[0]}.${p[1]}.x.x` : 'x.x.x.x';
+  } catch { return 'x.x.x.x'; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  THREE.JS SETUP
+// ═══════════════════════════════════════════════════════════════
+const container = document.getElementById('canvas-container');
+const scene     = new THREE.Scene();
+// Camera matches v4 geometry that worked — sphere radius ~1.05, camera z=3.4
+const camera    = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 100);
 camera.position.z = 3.4;
-const renderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
-renderer.setSize(W, H);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setClearColor(0xf7f4ee, 1);
-cont.appendChild(renderer.domElement);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor(0x000000, 0);
+container.appendChild(renderer.domElement);
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
 
 const group = new THREE.Group();
 scene.add(group);
 
-/* ── Sphere mesh ── */
+// Sphere mesh — translucent, warm tone like v4
 const sphereMesh = new THREE.Mesh(
-  new THREE.SphereGeometry(0.9, 64, 64),
-  new THREE.MeshStandardMaterial({color:0xcfbfa0,roughness:0.9,metalness:0.0,transparent:true,opacity:0.45})
+  new THREE.SphereGeometry(0.78, 64, 64),
+  new THREE.MeshStandardMaterial({ color: 0xD9D0C4, roughness: 0.95, metalness: 0.0, transparent: true, opacity: 0.30 })
 );
 group.add(sphereMesh);
 group.add(new THREE.Mesh(
-  new THREE.SphereGeometry(0.905, 20, 14),
-  new THREE.MeshBasicMaterial({color:0x8a7e6e,wireframe:true,transparent:true,opacity:0.10})
+  new THREE.SphereGeometry(0.785, 22, 16),
+  new THREE.MeshBasicMaterial({ color: 0x9E9080, wireframe: true, transparent: true, opacity: 0.07 })
 ));
 
-/* ── Lights ── */
-scene.add(new THREE.AmbientLight(0xfff6ea, 0.8));
-const dl = new THREE.DirectionalLight(0xf8e8d0, 1.0);
-dl.position.set(3,4,3); scene.add(dl);
-const dl2 = new THREE.DirectionalLight(0xc8d0f0, 0.35);
-dl2.position.set(-3, -2, 1);
-scene.add(dl2);
+// Lights
+scene.add(new THREE.AmbientLight(0xFFF8F0, 0.9));
+const dl = new THREE.DirectionalLight(0xF8E8D0, 0.8);
+dl.position.set(3, 4, 3); scene.add(dl);
+const dl2 = new THREE.DirectionalLight(0xC8D0F0, 0.3);
+dl2.position.set(-3, -2, 1); scene.add(dl2);
 
-/* ── Word data ── */
-const freq = {}, spriteMap = {};
-let uniqueCount = 0;
+// ═══════════════════════════════════════════════════════════════
+//  TEXTURE SYSTEM — fixed canvas size, DPR-scaled
+// ═══════════════════════════════════════════════════════════════
+//
+//  KEY RULE: canvas is ALWAYS 320×80 CSS px (scaled by DPR for quality).
+//  Sprite scale is ALWAYS (base*2.0, base*0.60, 1) — fixed aspect ~3.33.
+//  Font size auto-scales down for long words to fit the 300px usable width.
+//
+const CV_W = 480, CV_H = 96;           // CSS px (fixed) — 5:1 ratio
+const SP_AX = 1.50, SP_AY = 0.30;     // sprite scale multipliers (aspect = 5:1 matching canvas)
 
-/* ── Helpers ── */
-function tempColor(t){
-  return new THREE.Color(0x4e7ea0).lerp(new THREE.Color(0xb85828), t/100);
-}
-function affOpacity(a){ return 0.28 + (a/100)*0.72; }
-
-// Van der Corput base b — donne une suite quasi-aléatoire en [0,1)
-function vanDerCorput(n, base){
-  let result = 0, f = 1;
-  while(n > 0){ f /= base; result += (n % base) * f; n = Math.floor(n / base); }
-  return result;
-}
-// Placement incrémental uniforme sur la sphère (séquence de Halton 2/3)
-// Ne dépend PAS du nombre total de points — chaque nouveau mot
-// s'insère naturellement entre les existants.
-function goldenPos(idx){
-  const azimuth = (idx * 2.399963) % (2 * Math.PI); // angle d'or
-  const v       = vanDerCorput(idx + 1, 2);          // latitude VdC base 2
-  const polar   = Math.acos(1 - 2 * v);              // distribution uniforme sur la sphère
-  const r = 1.05 + ((idx*7+13)%17)/100*0.22;
-  const vec = new THREE.Vector3();
-  vec.setFromSphericalCoords(r, polar, azimuth);
-  return vec;
+function tempToColor(t) {
+  // cold = #6B7FD4 (blue steel), warm = #C4622D (terracotta)
+  const cold = [107, 127, 212], warm = [196, 98, 45];
+  const f = t / 100;
+  const r = Math.round(cold[0] + f * (warm[0] - cold[0]));
+  const g = Math.round(cold[1] + f * (warm[1] - cold[1]));
+  const b = Math.round(cold[2] + f * (warm[2] - cold[2]));
+  return `rgb(${r},${g},${b})`;
 }
 
-/* ── Canvas texture (no globalAlpha – opacity lives on material) ── */
-function buildCanvas(text, temp, style, aff, count){
-  const dpr = Math.min(window.devicePixelRatio||1, 2);
-  const cw = 320*dpr, ch = 90*dpr;
-  const cvs = document.createElement('canvas');
-  cvs.width = cw; cvs.height = ch;
-  const ctx = cvs.getContext('2d');
-  ctx.clearRect(0, 0, cw, ch);
+// style 0–100: Nunito (round organic) → Outfit (neutral) → Playfair (sharp)
+function styleToFontFamily(s) {
+  if (s < 35) return "'Nunito', sans-serif";
+  if (s < 65) return "'Outfit', sans-serif";
+  return "'Playfair Display', serif";
+}
+
+function styleToWeight(s, aff) {
+  if (aff > 65) return '600';
+  if (aff < 35) return '300';
+  return '400';
+}
+
+// affirmation: poetic = loose + transparent; political = tight + opaque
+function affToParams(aff) {
+  const letterSpacing = 6 - (aff / 100) * 5;   // 6 → 1 px
+  const baseOpacity   = 0.50 + (aff / 100) * 0.50; // 0.50 → 1.0
+  return { letterSpacing, baseOpacity };
+}
+
+function makeTexture(mot, temp, style, aff) {
+  const dpr    = Math.min(window.devicePixelRatio || 1, 2);
+  const cv     = document.createElement('canvas');
+  cv.width     = CV_W * dpr;
+  cv.height    = CV_H * dpr;
+  const ctx    = cv.getContext('2d');
   ctx.scale(dpr, dpr);
 
-  const col = tempColor(temp);
-  const fw  = style > 65 ? '600' : '300';
-  const fi  = style < 35 ? 'italic ' : '';
-  const fs  = Math.max(14, 15 + (count-1)*4);
+  const color  = tempToColor(temp);
+  const family = styleToFontFamily(style);
+  const weight = styleToWeight(style, aff);
+  const { letterSpacing, baseOpacity } = affToParams(aff);
 
-  /* blur for very low affirmation */
-  if(aff < 38) ctx.filter = `blur(${Math.round((38-aff)/13)}px)`;
+  // Auto-fit: start at 20px, reduce until text fits in 290px
+  let fontSize = 24;
+  let measuredW;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    ctx.font = `${weight} ${fontSize}px ${family}`;
+    measuredW = 0;
+    for (const ch of mot) measuredW += ctx.measureText(ch).width;
+    measuredW += letterSpacing * Math.max(mot.length - 1, 0);
+    if (measuredW <= CV_W - 40) break;
+    fontSize = Math.max(10, fontSize - 2);
+  }
 
-  ctx.font = `${fi}${fw} ${fs}px "Cormorant Garamond",serif`;
-  ctx.fillStyle = '#' + col.getHexString();
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(text, 160, 45);
-  return cvs;
+  // Draw text centered vertically and horizontally
+  ctx.font         = `${weight} ${fontSize}px ${family}`;
+  ctx.textBaseline = 'middle';
+  ctx.globalAlpha  = baseOpacity;
+  ctx.fillStyle    = color;
+
+  let x = (CV_W - measuredW) / 2;
+  for (const ch of mot) {
+    ctx.fillText(ch, x, CV_H / 2);
+    x += ctx.measureText(ch).width + letterSpacing;
+  }
+
+  const tex = new THREE.CanvasTexture(cv);
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.needsUpdate = true;
+  return { tex, baseOpacity };
 }
 
-function makeSprite(text, temp, style, aff, count){
-  const cvs = buildCanvas(text, temp, style, aff, count);
-  const tex  = new THREE.CanvasTexture(cvs);
-  const mat  = new THREE.SpriteMaterial({
-    map: tex, transparent:true, depthWrite:false, depthTest:false,
-    opacity: affOpacity(aff)   /* base opacity – depth multiplier applied each frame */
-  });
-  const sp  = new THREE.Sprite(mat);
-  // Croissance logarithmique : rapide au début, ralentit naturellement. Plafond doux à 50 votes.
-  const cClamped = Math.min(count, 50);
-  const sc  = 0.70 + Math.log(cClamped) * 0.28;
-  sp.scale.set(sc*2.0, sc*0.60, 1);
-  sp.renderOrder = 1;
-  return sp;
+// ═══════════════════════════════════════════════════════════════
+//  WORD DATA & SPRITES
+// ═══════════════════════════════════════════════════════════════
+const wordData  = {};  // key → { count, temp, style, aff, idx }
+const spriteMap = {};  // key → THREE.Sprite
+
+// Logarithmic size: 1 vote → base=0.70, 50 votes → ~1.80 (clamped)
+function computeBase(count) {
+  return 0.70 + Math.log(Math.min(count, 50)) * 0.28;
 }
 
-function rebuildAll(text){
-  const entry = spriteMap[text];
-  if(!entry) return;
-  const c = freq[text];
-  const newSp = makeSprite(text, entry.data.temp, entry.data.style, entry.data.aff, c);
-  newSp.position.copy(entry.pos);
-  group.remove(entry.sprite);
-  entry.sprite.material.map.dispose();
-  entry.sprite.material.dispose();
-  group.add(newSp);
-  entry.sprite = newSp;
+// Halton-based sphere placement — uniform distribution
+function vanDerCorput(n, base) {
+  let result = 0, f = 1;
+  while (n > 0) { f /= base; result += (n % base) * f; n = Math.floor(n / base); }
+  return result;
+}
+function haltonPos(idx) {
+  const az    = (idx * 2.399963) % (Math.PI * 2);  // golden angle azimuth
+  const v     = vanDerCorput(idx + 1, 2);            // Van der Corput base-2
+  const polar = Math.acos(1 - 2 * v);               // uniform latitude
+  const r     = 1.02 + ((idx * 7 + 13) % 17) / 100 * 0.18; // slight variation 1.02–1.20
+  const pos   = new THREE.Vector3();
+  pos.setFromSphericalCoords(r, polar, az);
+  return pos;
 }
 
-function updateCount(){
-  document.getElementById('wcount').textContent = uniqueCount + ' mots uniques déposés';
-}
+function addOrUpdate(mot, temp, style, aff, animate) {
+  const key = mot.toLowerCase().trim();
+  if (!key) return;
 
-/* ── Add word ── */
-function addWord(text, temp, style, aff, animate, fromWorldPos){
-  const key = text.toLowerCase().trim();
-  if(!key) return;
-  if(!freq[key]){
-    freq[key] = 1; uniqueCount++;
-    const idx   = uniqueCount - 1;
-    const pos   = goldenPos(idx);
-    const sp    = makeSprite(key, temp, style, aff, 1);
-    spriteMap[key] = {sprite:sp, data:{temp,style,aff}, pos:pos.clone(), baseOpacity:affOpacity(aff)};
+  let isNew = false;
+  if (!wordData[key]) {
+    wordData[key] = { count: 1, temp, style, aff, idx: Object.keys(wordData).length };
+    isNew = true;
+  } else {
+    const d = wordData[key], n = d.count;
+    d.temp  = (d.temp  * n + temp)  / (n + 1);
+    d.style = (d.style * n + style) / (n + 1);
+    d.aff   = (d.aff   * n + aff)   / (n + 1);
+    d.count++;
+  }
+
+  const d = wordData[key];
+  const { tex, baseOpacity } = makeTexture(key, d.temp, d.style, d.aff);
+  const base = computeBase(d.count);
+
+  if (!isNew && spriteMap[key]) {
+    // Update existing sprite texture + trigger pop
+    const sp = spriteMap[key];
+    if (sp.material.map) sp.material.map.dispose();
+    sp.material.map = tex;
+    sp.material.needsUpdate = true;
+    sp.userData.base = base;
+    sp.userData.baseOp = baseOpacity;
+    if (animate) sp.userData.popT = 0;
+  } else if (isNew) {
+    // Create new sprite
+    const mat = new THREE.SpriteMaterial({
+      map: tex, transparent: true, opacity: 0, depthWrite: false, depthTest: false
+    });
+    const sp  = new THREE.Sprite(mat);
+    const pos = haltonPos(d.idx);
+    sp.position.set(0, -2.5, 0);  // entry from below
+    sp.scale.set(base * SP_AX, base * SP_AY, 1);
+    sp.userData = { base, baseOp: baseOpacity, finalPos: pos.clone(), entryT: 0, phase: Math.random() * Math.PI * 2 };
     group.add(sp);
-
-    if(animate && fromWorldPos){
-      sp.position.copy(fromWorldPos);
-      let t0 = null;
-      const start = fromWorldPos.clone();
-      /* slight arc overshoot then settle */
-      const ctrl = pos.clone().lerp(start, 0.3).add(new THREE.Vector3(
-        (Math.random()-.5)*.6, .4, (Math.random()-.5)*.3
-      ));
-      (function anim(ts){
-        if(!t0) t0 = ts;
-        const raw = Math.min((ts-t0)/1200, 1);
-        /* ease out back (overshoot) */
-        const c1=1.70158, c3=c1+1;
-        const p = raw < 1 ? 1 + c3*Math.pow(raw-1,3) + c1*Math.pow(raw-1,2) : 1;
-        const ep = Math.min(Math.max(p,0),1.12);
-        /* quadratic bezier */
-        sp.position.lerpVectors(start.clone().lerp(ctrl, ep), ctrl.clone().lerp(pos, ep), ep);
-        /* small initial scale pop */
-        const popScale = 1 + 0.35*Math.sin(Math.PI*Math.min(raw,1));
-        const baseScale = (0.70 + Math.log(1) * 0.28) * 2.0;
-        sp.scale.set(baseScale*popScale, baseScale*0.60*popScale, 1);
-        if(raw < 1) requestAnimationFrame(anim);
-      })(performance.now());
-    } else {
-      sp.position.copy(pos);
-    }
-    updateCount();
-  } else {
-    freq[key]++;
-    const entry = spriteMap[key];
-    // Animer un fantôme qui vole de fromWorldPos vers la position du mot existant
-    if(animate && fromWorldPos){
-      const ghost = makeSprite(key, entry.data.temp, entry.data.style, entry.data.aff, freq[key]-1);
-      ghost.material.opacity = 0.6;
-      ghost.position.copy(fromWorldPos);
-      group.add(ghost);
-      const dest = entry.pos.clone();
-      const ctrl = dest.clone().lerp(fromWorldPos, 0.3).add(new THREE.Vector3(
-        (Math.random()-.5)*.5, .3, (Math.random()-.5)*.3
-      ));
-      let t0 = null;
-      (function anim(ts){
-        if(!t0) t0 = ts;
-        const raw = Math.min((ts-t0)/900, 1);
-        const ep = raw < 1 ? raw*raw*(3-2*raw) : 1; // smoothstep
-        ghost.position.lerpVectors(fromWorldPos.clone().lerp(ctrl, ep), ctrl.clone().lerp(dest, ep), ep);
-        ghost.material.opacity = 0.6 * (1 - raw);
-        if(raw < 1){
-          requestAnimationFrame(anim);
-        } else {
-          group.remove(ghost);
-          ghost.material.map.dispose(); ghost.material.dispose();
-          // Faire grossir le mot existant avec un pop
-          rebuildAll(key);
-          const sc = (0.70 + Math.log(Math.min(freq[key],50))*0.28);
-          const popSp = entry.sprite;
-          let p0 = null;
-          (function pop(ts){
-            if(!p0) p0=ts;
-            const pr = Math.min((ts-p0)/400,1);
-            const popScale = 1 + 0.4*Math.sin(Math.PI*pr);
-            popSp.scale.set(sc*2.0*popScale, sc*0.60*popScale, 1);
-            if(pr<1) requestAnimationFrame(pop);
-          })(performance.now());
-        }
-      })(performance.now());
-    } else {
-      rebuildAll(key);
-    }
-    spriteMap[key].baseOpacity = affOpacity(entry.data.aff);
+    spriteMap[key] = sp;
   }
 }
 
-SEEDS.forEach(w => addWord(w.text, w.temp, w.style, w.aff, false, null));
+// ═══════════════════════════════════════════════════════════════
+//  SEEDS
+// ═══════════════════════════════════════════════════════════════
+const SEEDS = [
+  { text: 'premier',        temp: 55, style: 40, aff: 85 },
+  { text: 'non-occidental', temp: 20, style: 70, aff: 75 },
+  { text: 'extra-européen', temp: 15, style: 75, aff: 80 },
+  { text: 'du monde',       temp: 65, style: 30, aff: 70 },
+  { text: 'autochtone',     temp: 60, style: 45, aff: 78 },
+  { text: 'tribal',         temp: 70, style: 50, aff: 55 },
+  { text: 'traditionnel',   temp: 50, style: 40, aff: 60 },
+  { text: 'terrial',        temp: 75, style: 35, aff: 65 },
+  { text: 'fondational',    temp: 50, style: 55, aff: 82 },
+  { text: 'basical',        temp: 45, style: 60, aff: 58 },
+  { text: 'ethnoprinceps',  temp: 25, style: 80, aff: 90 },
+  { text: 'priméal',        temp: 60, style: 35, aff: 72 },
+  { text: 'ancestral',      temp: 65, style: 40, aff: 88 },
+  { text: 'racinaire',      temp: 70, style: 30, aff: 75 },
+];
 
-/* ── UI refs ── */
-const prevEl    = document.getElementById('prev');
-const tooltipEl = document.getElementById('tooltip');
-const wiEl  = document.getElementById('wi');
-const ptEl  = document.getElementById('pt');
-const psEl  = document.getElementById('ps');
-const paEl  = document.getElementById('pa');
+// ═══════════════════════════════════════════════════════════════
+//  LOG STREAM
+// ═══════════════════════════════════════════════════════════════
+const logEl = document.getElementById('log');
 
-function updatePreview(){
-  const txt = wiEl.value.trim();
-  if(!txt){ prevEl.style.opacity='0'; return; }
-  const t=+ptEl.value, s=+psEl.value, a=+paEl.value;
-  const col = tempColor(t);
-  prevEl.style.color       = '#'+col.getHexString();
-  prevEl.style.fontWeight  = s>65?'600':'300';
-  prevEl.style.fontStyle   = s<35?'italic':'normal';
-  prevEl.style.opacity     = affOpacity(a).toFixed(2);
-  prevEl.style.fontSize    = '22px';
-  prevEl.style.filter      = a<38?`blur(${Math.round((38-a)/13)}px)`:'none';
-  prevEl.textContent       = txt;
+function timeAgo(iso) {
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 60)    return "à l'instant";
+  if (s < 3600)  return `il y a ${Math.floor(s / 60)} min`;
+  if (s < 86400) return `il y a ${Math.floor(s / 3600)} h`;
+  return `il y a ${Math.floor(s / 86400)} j`;
 }
-[wiEl,ptEl,psEl,paEl].forEach(el => el.addEventListener('input', updatePreview));
-wiEl.addEventListener('focus', ()=>{ if(wiEl.value.trim()) prevEl.style.opacity=affOpacity(+paEl.value).toFixed(2); });
-wiEl.addEventListener('blur',  ()=> setTimeout(()=>{ prevEl.style.opacity='0'; }, 400));
 
-function deposit(){
-  const txt = wiEl.value.trim();
-  if(!txt) return;
-  const t=+ptEl.value, s=+psEl.value, a=+paEl.value;
-  const from = new THREE.Vector3(0, -1.9, 0.8);
-  addWord(txt, t, s, a, true, from);
-  saveState();
-  wiEl.value=''; ptEl.value=50; psEl.value=50; paEl.value=50;
-  prevEl.style.opacity='0';
-  updatePreview();
+function addLog(mot, ip, created_at) {
+  const el = document.createElement('div');
+  el.className = 'log-entry';
+  el.innerHTML = `<span class="lw">« ${mot} »</span><br><span class="lip">${ip || '—'}</span><br>${timeAgo(created_at)}`;
+  logEl.appendChild(el);
+  while (logEl.children.length > 8) logEl.removeChild(logEl.firstChild);
+  requestAnimationFrame(() => el.classList.add('visible'));
 }
-document.getElementById('sbtn').addEventListener('click', deposit);
-wiEl.addEventListener('keydown', e=>{ if(e.key==='Enter') deposit(); });
 
-/* ── Drag / rotation ── */
-let isDrag=false, prevMouse={x:0,y:0};
-let velX=0, velY=0;
+function updateCount() {
+  const total  = Object.values(wordData).reduce((s, d) => s + d.count, 0);
+  const unique = Object.keys(wordData).length;
+  document.getElementById('word-count').textContent =
+    `${unique} mots · ${total} contribution${total > 1 ? 's' : ''}`;
+}
 
-appEl.addEventListener('mousedown', e=>{
-  if(e.target.closest('#ui')) return;
-  isDrag=true; appEl.classList.add('dragging');
-  prevMouse={x:e.clientX,y:e.clientY};
-  velX=0; velY=0;
-});
-window.addEventListener('mousemove', e=>{
-  if(!isDrag) return;
-  const dx=e.clientX-prevMouse.x, dy=e.clientY-prevMouse.y;
-  velX=dx*0.009; velY=dy*0.009;
-  group.rotation.y+=velX; group.rotation.x+=velY;
-  prevMouse={x:e.clientX,y:e.clientY};
-});
-window.addEventListener('mouseup', ()=>{ isDrag=false; appEl.classList.remove('dragging'); });
+// ═══════════════════════════════════════════════════════════════
+//  LIVE PREVIEW
+// ═══════════════════════════════════════════════════════════════
+function updatePreview() {
+  const mot  = document.getElementById('word-input').value.trim();
+  const cont = document.getElementById('word-preview');
+  const span = document.getElementById('preview-text');
+  if (!mot) { cont.style.opacity = '0'; return; }
+  const temp  = +document.getElementById('sl-temp').value;
+  const style = +document.getElementById('sl-style').value;
+  const aff   = +document.getElementById('sl-aff').value;
+  const { letterSpacing, baseOpacity } = affToParams(aff);
+  span.textContent         = mot;
+  span.style.color         = tempToColor(temp);
+  span.style.fontFamily    = styleToFontFamily(style);
+  span.style.fontWeight    = styleToWeight(style, aff);
+  span.style.letterSpacing = letterSpacing + 'px';
+  span.style.opacity       = baseOpacity;
+  cont.style.opacity = '1';
+}
 
-/* ── Touch ── */
-appEl.addEventListener('touchstart', e=>{
-  if(e.target.closest('#ui')) return;
-  const t=e.touches[0];
-  isDrag=true; prevMouse={x:t.clientX,y:t.clientY}; velX=0; velY=0;
-},{passive:true});
-appEl.addEventListener('touchmove', e=>{
-  if(!isDrag) return;
-  const t=e.touches[0];
-  const dx=t.clientX-prevMouse.x, dy=t.clientY-prevMouse.y;
-  velX=dx*0.009; velY=dy*0.009;
-  group.rotation.y+=velX; group.rotation.x+=velY;
-  prevMouse={x:t.clientX,y:t.clientY};
-},{passive:true});
-appEl.addEventListener('touchend', ()=>{ isDrag=false; });
+['word-input','sl-temp','sl-style','sl-aff'].forEach(id =>
+  document.getElementById(id).addEventListener('input', updatePreview)
+);
 
-/* ── Hover / raycasting ── */
-const raycaster = new THREE.Raycaster();
-raycaster.params.Sprite = {threshold:0.05};
-const mouse2d  = new THREE.Vector2(-9999,-9999);
-let hoveredKey = null;
-
-appEl.addEventListener('mousemove', e=>{
-  if(isDrag){ mouse2d.set(-9999,-9999); return; }
-  if(e.target.closest('#ui')){ mouse2d.set(-9999,-9999); return; }
-  const rect = renderer.domElement.getBoundingClientRect();
-  mouse2d.x  = ((e.clientX-rect.left)/rect.width)*2-1;
-  mouse2d.y  = -((e.clientY-rect.top)/rect.height)*2+1;
-  /* store screen pos for tooltip */
-  appEl._mx = e.clientX - rect.left;
-  appEl._my = e.clientY - rect.top;
-});
-appEl.addEventListener('mouseleave', ()=>{ mouse2d.set(-9999,-9999); });
-
-/* ── Depth update (called every frame) ── */
-const tmpVec = new THREE.Vector3();
-function updateDepth(){
-  const allSprites = Object.values(spriteMap).map(e=>e.sprite);
-
-  /* hover detection */
-  raycaster.setFromCamera(mouse2d, camera);
-  const hits = raycaster.intersectObjects(allSprites);
-  const newHover = hits.length>0
-    ? Object.keys(spriteMap).find(k=>spriteMap[k].sprite===hits[0].object)||null
-    : null;
-
-  if(newHover !== hoveredKey){
-    hoveredKey = newHover;
-    appEl.style.cursor = hoveredKey ? 'pointer' : (isDrag?'grabbing':'grab');
-  }
-
-  /* show / hide tooltip */
-  if(hoveredKey && spriteMap[hoveredKey]){
-    tooltipEl.style.opacity='1';
-    tooltipEl.style.left   = (appEl._mx||0)+'px';
-    tooltipEl.style.top    = (appEl._my||0)+'px';
-    const d = spriteMap[hoveredKey].data;
-    const tf = d.temp<40?'froid':d.temp>65?'chaud':'tempéré';
-    const sf = d.style<35?'doux':d.style>65?'tranchant':'neutre';
-    tooltipEl.textContent  = `${tf} · ${sf} · ×${freq[hoveredKey]}`;
-  } else {
-    tooltipEl.style.opacity='0';
-  }
-
-  /* per-sprite depth scale + opacity + renderOrder */
-  Object.entries(spriteMap).forEach(([key, entry])=>{
-    entry.sprite.getWorldPosition(tmpVec);
-    const z = tmpVec.z;
-    /* sphere max r ~1.27 → range roughly -1.3 to +1.3 */
-    const t = Math.max(0, Math.min(1, (z+1.35)/2.7));
-
-    const depthScale = 0.45 + t*1.1;            /* 0.45 (back) → 1.55 (front) */
-    const depthOpac  = 0.08 + t*0.92;            /* 0.08 (back) → 1.00 (front) */
-    const count      = freq[key]||1;
-    const base       = 0.70 + (count-1)*0.13;
-    const hoverBoost = (key===hoveredKey) ? 1.22 : 1.0;
-
-    entry.sprite.scale.set(
-      base*2.0*depthScale*hoverBoost,
-      base*0.60*depthScale*hoverBoost,
-      1
-    );
-    entry.sprite.material.opacity  = entry.baseOpacity * depthOpac;
-    entry.sprite.renderOrder       = Math.round(t*100);
+// ═══════════════════════════════════════════════════════════════
+//  GHOST ANIMATION (mot → sphère)
+// ═══════════════════════════════════════════════════════════════
+function launchGhost(text, toX, toY) {
+  const g = document.createElement('div');
+  Object.assign(g.style, {
+    position: 'fixed', zIndex: '20', pointerEvents: 'none',
+    fontFamily: "'Cormorant Garamond', serif", fontSize: '1rem', fontWeight: '300',
+    color: '#1E1E1E', letterSpacing: '0.1em', opacity: '0.75',
+    transition: 'left 0.90s cubic-bezier(0.25,0.46,0.45,0.94), top 0.90s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.90s ease'
   });
+  g.textContent = text;
+  const inp = document.getElementById('word-input').getBoundingClientRect();
+  g.style.left = (inp.left + inp.width / 2) + 'px';
+  g.style.top  = inp.top + 'px';
+  document.body.appendChild(g);
+  setTimeout(() => {
+    g.style.left    = toX + 'px';
+    g.style.top     = toY + 'px';
+    g.style.opacity = '0';
+  }, 60);
+  setTimeout(() => g.remove(), 980);
 }
 
-/* ── Sphere breathing ── */
-let breathT = 0;
-function updateBreath(dt){
-  breathT += dt * 0.5;
-  const s = 1 + Math.sin(breathT)*0.006;
-  sphereMesh.scale.setScalar(s);
+function spriteScreenPos(sp) {
+  const wp = sp.position.clone();
+  group.localToWorld(wp);
+  const pr = wp.clone().project(camera);
+  return {
+    x: (pr.x * .5 + .5) * innerWidth,
+    y: (-pr.y * .5 + .5) * innerHeight
+  };
 }
 
-/* ── Main render loop ── */
-let introStarted=false, introDone=false, introElapsed=0;
-const INTRO_DUR=4.5;
-let lastTs = 0;
-const uiEl = document.getElementById('ui');
+function haltonScreenPos(idx) {
+  const pos = haltonPos(idx);
+  const wp  = pos.clone();
+  group.localToWorld(wp);
+  const pr  = wp.clone().project(camera);
+  return {
+    x: (pr.x * .5 + .5) * innerWidth,
+    y: (-pr.y * .5 + .5) * innerHeight
+  };
+}
 
-function animate(ts){
+// ═══════════════════════════════════════════════════════════════
+//  INTERACTION
+// ═══════════════════════════════════════════════════════════════
+let isDrag = false, lx = 0, ly = 0, velX = 0, velY = 0;
+renderer.domElement.addEventListener('pointerdown', e => { isDrag = true; lx = e.clientX; ly = e.clientY; velX = velY = 0; });
+window.addEventListener('pointerup',   () => { isDrag = false; });
+window.addEventListener('pointermove', e => {
+  if (!isDrag) return;
+  velX = (e.clientX - lx) * 0.009; velY = (e.clientY - ly) * 0.009;
+  group.rotation.y += velX; group.rotation.x += velY;
+  lx = e.clientX; ly = e.clientY;
+});
+
+const raycaster = new THREE.Raycaster();
+raycaster.params.Sprite = { threshold: 0.05 };
+const mouse2d = new THREE.Vector2(-9999, -9999);
+let hovKey = null;
+
+renderer.domElement.addEventListener('mousemove', e => {
+  if (isDrag) { mouse2d.set(-9999, -9999); return; }
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse2d.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+  mouse2d.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
+});
+renderer.domElement.addEventListener('mouseleave', () => mouse2d.set(-9999, -9999));
+
+// ─── SUBMIT ───────────────────────────────────────────────────
+const statusEl = document.getElementById('status-msg');
+function showStatus(msg) {
+  statusEl.textContent = msg; statusEl.style.opacity = '1';
+  setTimeout(() => { statusEl.style.opacity = '0'; }, 2600);
+}
+
+async function submitWord() {
+  const raw   = document.getElementById('word-input').value.trim();
+  const temp  = +document.getElementById('sl-temp').value;
+  const style = +document.getElementById('sl-style').value;
+  const aff   = +document.getElementById('sl-aff').value;
+  if (!raw) return;
+  const mot   = raw.toLowerCase().trim();
+  const isNew = !wordData[mot];
+
+  // Ghost: for existing words → fly to sprite; for new → fly to future halton pos
+  if (!isNew && spriteMap[mot]) {
+    const { x, y } = spriteScreenPos(spriteMap[mot]);
+    launchGhost(raw, x, y);
+  } else {
+    const { x, y } = haltonScreenPos(Object.keys(wordData).length);
+    launchGhost(raw, x, y);
+  }
+
+  addOrUpdate(mot, temp, style, aff, true);
+  updateCount();
+
+  // Reset form
+  document.getElementById('word-input').value = '';
+  document.getElementById('sl-temp').value  = 50;
+  document.getElementById('sl-style').value = 50;
+  document.getElementById('sl-aff').value   = 50;
+  document.getElementById('word-preview').style.opacity = '0';
+
+  const ip = await getIP();
+  const ok = await dbInsert(mot, temp, style, aff, ip);
+  if (ok) { addLog(mot, ip, new Date().toISOString()); showStatus('mot déposé —'); }
+  else showStatus('connexion impossible');
+}
+
+document.getElementById('submit-btn').addEventListener('click', submitWord);
+document.getElementById('word-input').addEventListener('keydown', e => { if (e.key === 'Enter') submitWord(); });
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT FROM DB
+// ═══════════════════════════════════════════════════════════════
+let dbRowCount = 0;
+
+async function initFromDB() {
+  const rows = await dbFetchAll();
+  dbRowCount = Array.isArray(rows) ? rows.length : 0;
+
+  if (dbRowCount === 0) {
+    // Première utilisation : insérer les seeds dans la DB une seule fois
+    for (const s of SEEDS) {
+      await dbInsert(s.text, s.temp, s.style, s.aff, 'seed');
+    }
+    const seeded = await dbFetchAll();
+    dbRowCount = Array.isArray(seeded) ? seeded.length : 0;
+    const ordered = [...(seeded || [])].reverse();
+    for (const row of ordered) addOrUpdate(row.mot, row.temperature, row.style, row.affirmation, false);
+  } else {
+    // Chargement normal depuis la DB uniquement
+    const ordered = [...rows].reverse();
+    for (const row of ordered) addOrUpdate(row.mot, row.temperature, row.style, row.affirmation, false);
+    rows.slice(0, 6).reverse().forEach(r => addLog(r.mot, r.ip_masquee, r.created_at));
+  }
+  updateCount();
+}
+
+setInterval(async () => {
+  const rows = await dbFetchAll();
+  if (!Array.isArray(rows) || rows.length <= dbRowCount) return;
+  const newRows = rows.slice(0, rows.length - dbRowCount).reverse();
+  for (const row of newRows) {
+    addOrUpdate(row.mot, row.temperature, row.style, row.affirmation, false);
+    addLog(row.mot, row.ip_masquee, row.created_at);
+  }
+  dbRowCount = rows.length;
+  updateCount();
+}, 15000);
+
+// ═══════════════════════════════════════════════════════════════
+//  ANIMATION LOOP
+// ═══════════════════════════════════════════════════════════════
+let breathT = 0, lastTs = 0, introDone = false, introT = 0;
+const INTRO_DUR = 3.5;
+
+function animate(ts) {
   requestAnimationFrame(animate);
-  const dt = Math.min((ts - (lastTs||ts))/1000, 0.05);
+  const dt = Math.min((ts - (lastTs || ts)) / 1000, 0.05);
   lastTs = ts;
 
-  if(!introStarted){ introStarted=true; return; }
-
-  if(!introDone){
-    introElapsed += dt;
-    group.rotation.y += 0.008;
-    group.rotation.x  = Math.sin(introElapsed*0.5)*0.10;
-    if(introElapsed >= INTRO_DUR){ introDone=true; uiEl.classList.add('on'); }
-  } else if(!isDrag){
-    velX *= 0.91;                /* smoother deceleration */
-    velY *= 0.91;
-    group.rotation.y += 0.0022 + velX;
+  // Intro rotation
+  if (!introDone) {
+    introT += dt;
+    group.rotation.y += 0.010;
+    group.rotation.x  = Math.sin(introT * 0.5) * 0.08;
+    if (introT >= INTRO_DUR) introDone = true;
+  } else if (!isDrag) {
+    velX *= 0.91; velY *= 0.91;
+    group.rotation.y += 0.0020 + velX;
     group.rotation.x += velY;
     group.rotation.x *= 0.97;
-  } else {
-    /* while dragging, still dampen for feel */
-    group.rotation.x *= 0.995;
   }
 
-  updateBreath(dt);
-  updateDepth();
+  // Sphere breath — lente respiration organique
+  breathT += dt * 0.38;  // ~0.06 Hz, cycle ~16s
+  const breathScale = 1 + Math.sin(breathT) * 0.022 + Math.sin(breathT * 1.7) * 0.008;
+  sphereMesh.scale.setScalar(breathScale);
+  // Les sprites suivent la sphère (légère ondulation solidaire)
+  group.children.forEach(c => {
+    if (c.isSprite) {
+      const base = c.userData.baseScale || { x: c.scale.x, y: c.scale.y };
+      if (!c.userData.baseScale) c.userData.baseScale = { x: c.scale.x, y: c.scale.y };
+      const wobble = 1 + Math.sin(breathT + (c.userData.phase || 0)) * 0.012;
+      c.scale.set(base.x * wobble, base.y * wobble, 1);
+    }
+  });
+
+  // Hover
+  raycaster.setFromCamera(mouse2d, camera);
+  const allSprites = Object.values(spriteMap);
+  const hits = raycaster.intersectObjects(allSprites);
+  const hitSp = hits.length ? hits[0].object : null;
+  const newHovKey = hitSp ? Object.keys(spriteMap).find(k => spriteMap[k] === hitSp) || null : null;
+  if (newHovKey !== hovKey) {
+    hovKey = newHovKey;
+    renderer.domElement.style.cursor = hovKey ? 'pointer' : 'default';
+  }
+
+  const tmpV = new THREE.Vector3();
+
+  // Per-sprite update
+  for (const [key, sp] of Object.entries(spriteMap)) {
+    const ud   = sp.userData;
+    const base = ud.base || 0.70;
+
+    // World-space depth for opacity/scale depth cue
+    sp.getWorldPosition(tmpV);
+    const t     = Math.max(0, Math.min(1, (tmpV.z + 1.35) / 2.7));
+    const dSc   = 0.45 + t * 1.1;   // 0.45 (back) → 1.55 (front)
+    const dOp   = 0.08 + t * 0.92;  // 0.08 (back) → 1.00 (front)
+    const finalSc = base * dSc;
+
+    // Entry animation (fly up from below)
+    if (ud.entryT !== undefined && ud.entryT < 1) {
+      ud.entryT = Math.min(ud.entryT + 0.022, 1);
+      const e = ud.entryT;
+      const ease = e < 0.5 ? 4*e*e*e : 1 - Math.pow(-2*e+2, 3)/2;
+      sp.position.lerpVectors(new THREE.Vector3(0, -2.5, 0), ud.finalPos, ease);
+      sp.material.opacity = ease * ud.baseOp * dOp;
+      if (ud.entryT >= 1) { sp.position.copy(ud.finalPos); delete ud.entryT; delete ud.finalPos; }
+    }
+
+    // Pop animation (doublon)
+    if (ud.popT !== undefined) {
+      ud.popT += 0.038;
+      if (ud.popT >= 1) { delete ud.popT; }
+      else {
+        const pop = 1 + Math.sin(ud.popT * Math.PI) * 0.4 * (1 - ud.popT);
+        sp.scale.set(finalSc * pop * SP_AX, finalSc * pop * SP_AY, 1);
+        sp.material.opacity = ud.baseOp * dOp;
+        continue;
+      }
+    }
+
+    sp.scale.set(finalSc * SP_AX, finalSc * SP_AY, 1);
+    sp.material.opacity = key === hovKey
+      ? Math.min(ud.baseOp * 1.4, 1)
+      : ud.baseOp * dOp;
+  }
+
   renderer.render(scene, camera);
 }
-requestAnimationFrame(animate);
 
-/* ── Persistence ── */
-async function saveState(){
-  try{
-    await window.storage.set('mots_plas_v4', JSON.stringify({
-      freq,
-      spriteData: Object.fromEntries(Object.entries(spriteMap).map(([k,v])=>[k,v.data]))
-    }));
-  }catch(e){}
-}
-async function loadState(){
-  try{
-    const r = await window.storage.get('mots_plas_v4');
-    if(!r||!r.value) return;
-    const saved = JSON.parse(r.value);
-    if(saved.freq && saved.spriteData){
-      Object.keys(saved.freq).forEach(txt=>{
-        if(!SEEDS.find(s=>s.text===txt)){
-          const d = saved.spriteData[txt]||{temp:50,style:50,aff:50};
-          const c = saved.freq[txt]||1;
-          for(let i=0;i<c;i++) addWord(txt,d.temp,d.style,d.aff,false,null);
-        }
-      });
-    }
-  }catch(e){}
-}
-loadState();
+// ─── START ────────────────────────────────────────────────────
+document.fonts.ready.then(() => {
+  initFromDB();
+  requestAnimationFrame(animate);
+});
 </script>
 </body>
 </html>
