@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Les mots sont plastiques</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Jost:wght@200;300;400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+#app{width:100%;height:600px;background:#f7f4ee;position:relative;overflow:hidden;font-family:'Jost',sans-serif;cursor:grab}
+#app.dragging{cursor:grabbing}
+#c3d{width:100%;height:100%;position:absolute;top:0;left:0}
+#header{position:absolute;top:1.4rem;left:0;right:0;text-align:center;pointer-events:none;z-index:10}
+#header h1{font-family:'Cormorant Garamond',serif;font-weight:300;font-size:12px;letter-spacing:.22em;color:#8a7f74;text-transform:uppercase}
+#wcount{font-size:10px;color:#b0a898;letter-spacing:.1em;margin-top:3px}
+#tooltip{position:absolute;pointer-events:none;z-index:30;opacity:0;transition:opacity .2s ease;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:11px;color:#8a7f74;letter-spacing:.08em;background:rgba(247,244,238,.9);padding:3px 8px;border:.5px solid #c8c0b0;border-radius:2px;transform:translate(-50%,-130%);white-space:nowrap}
+#ui{position:absolute;bottom:0;left:0;right:0;z-index:20;opacity:0;transition:opacity 1.2s ease;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:.55rem;padding-bottom:1.2rem}
+#ui.on{opacity:1;pointer-events:all}
+#invite{font-family:'Cormorant Garamond',serif;font-style:italic;font-weight:300;font-size:14px;color:#5a5248;letter-spacing:.04em}
+#params{display:flex;gap:1.4rem;align-items:flex-start;background:rgba(247,244,238,.82);border:.5px solid #c8c0b0;border-radius:2px;padding:7px 14px;backdrop-filter:blur(10px)}
+.pg{display:flex;flex-direction:column;align-items:center;gap:3px}
+.pl{font-size:9px;letter-spacing:.14em;color:#8a7f74;text-transform:uppercase}
+.pe{display:flex;align-items:center;gap:5px;font-size:10px;color:#5a5248}
+.pe input[type=range]{width:72px;accent-color:#2a2520;cursor:pointer}
+#irow{display:flex;align-items:center;background:rgba(247,244,238,.88);border:.5px solid #c8c0b0;border-radius:2px;backdrop-filter:blur(10px);overflow:hidden}
+#wi{background:transparent;border:none;outline:none;padding:8px 13px;font-family:'Jost',sans-serif;font-weight:300;font-size:14px;color:#2a2520;width:155px;letter-spacing:.06em}
+#wi::placeholder{color:#b0a898;font-style:italic}
+#sbtn{background:#2a2520;border:none;color:#f7f4ee;padding:8px 15px;cursor:pointer;font-family:'Jost',sans-serif;font-weight:300;font-size:12px;letter-spacing:.1em;transition:background .2s}
+#sbtn:hover{background:#4a3f35}
+#prev{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%);font-family:'Cormorant Garamond',serif;font-weight:300;pointer-events:none;opacity:0;transition:opacity .25s;letter-spacing:.08em;z-index:15;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="c3d"></div>
+  <div id="header">
+    <h1>Les mots sont plastiques</h1>
+    <div id="wcount">0 mots uniques déposés</div>
+  </div>
+  <div id="prev"></div>
+  <div id="tooltip"></div>
+  <div id="ui">
+    <div id="invite">Quel mot portez-vous ?</div>
+    <div id="params">
+      <div class="pg">
+        <div class="pl">Température</div>
+        <div class="pe"><span style="color:#5b8fa8">froid</span><input type="range" id="pt" min="0" max="100" value="50"><span style="color:#c06030">chaud</span></div>
+      </div>
+      <div class="pg">
+        <div class="pl">Style</div>
+        <div class="pe"><span>doux</span><input type="range" id="ps" min="0" max="100" value="50"><span>tranchant</span></div>
+      </div>
+      <div class="pg">
+        <div class="pl">Affirmation</div>
+        <div class="pe"><span>moins</span><input type="range" id="pa" min="0" max="100" value="50"><span>plus</span></div>
+      </div>
+    </div>
+    <div id="irow">
+      <input type="text" id="wi" placeholder="un mot…" maxlength="30" autocomplete="off">
+      <button id="sbtn">déposer</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const SEEDS=[
+  {text:'premier',temp:48,style:22,aff:78},
+  {text:'non-occidental',temp:28,style:68,aff:55},
+  {text:'extra-européen',temp:32,style:60,aff:50},
+  {text:'du monde',temp:72,style:18,aff:88},
+  {text:'autochtone',temp:44,style:55,aff:65},
+  {text:'tribal',temp:65,style:72,aff:42},
+  {text:'traditionnel',temp:38,style:28,aff:60},
+  {text:'terrial',temp:78,style:48,aff:70},
+  {text:'fondational',temp:42,style:38,aff:82},
+  {text:'basical',temp:50,style:30,aff:58},
+  {text:'ethnoprinceps',temp:22,style:80,aff:75},
+  {text:'priméal',temp:60,style:52,aff:68},
+  {text:'ancestral',temp:35,style:45,aff:72},
+  {text:'racinaire',temp:68,style:40,aff:80}
+];
+
+const appEl = document.getElementById('app');
+const cont  = document.getElementById('c3d');
+const W = cont.offsetWidth, H = cont.offsetHeight;
+
+/* ── Scene ── */
+const scene    = new THREE.Scene();
+const camera   = new THREE.PerspectiveCamera(52, W/H, 0.1, 100);
+camera.position.z = 3.4;
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
+renderer.setSize(W, H);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setClearColor(0xf7f4ee, 1);
+cont.appendChild(renderer.domElement);
+
+const group = new THREE.Group();
+scene.add(group);
+
+/* ── Sphere mesh ── */
+const sphereMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(0.9, 64, 64),
+  new THREE.MeshStandardMaterial({color:0xcfbfa0,roughness:0.9,metalness:0.0,transparent:true,opacity:0.45})
+);
+group.add(sphereMesh);
+group.add(new THREE.Mesh(
+  new THREE.SphereGeometry(0.905, 20, 14),
+  new THREE.MeshBasicMaterial({color:0x8a7e6e,wireframe:true,transparent:true,opacity:0.10})
+));
+
+/* ── Lights ── */
+scene.add(new THREE.AmbientLight(0xfff6ea, 0.8));
+const dl = new THREE.DirectionalLight(0xf8e8d0, 1.0);
+dl.position.set(3,4,3); scene.add(dl);
+const dl2 = new THREE.DirectionalLight(0xc8d0f0, 0.35);
+dl2.position.set(-3, -2, 1);
+scene.add(dl2);
+
+/* ── Word data ── */
+const freq = {}, spriteMap = {};
+let uniqueCount = 0;
+
+/* ── Helpers ── */
+function tempColor(t){
+  return new THREE.Color(0x4e7ea0).lerp(new THREE.Color(0xb85828), t/100);
+}
+function affOpacity(a){ return 0.28 + (a/100)*0.72; }
+
+// Van der Corput base b — donne une suite quasi-aléatoire en [0,1)
+function vanDerCorput(n, base){
+  let result = 0, f = 1;
+  while(n > 0){ f /= base; result += (n % base) * f; n = Math.floor(n / base); }
+  return result;
+}
+// Placement incrémental uniforme sur la sphère (séquence de Halton 2/3)
+// Ne dépend PAS du nombre total de points — chaque nouveau mot
+// s'insère naturellement entre les existants.
+function goldenPos(idx){
+  const azimuth = (idx * 2.399963) % (2 * Math.PI); // angle d'or
+  const v       = vanDerCorput(idx + 1, 2);          // latitude VdC base 2
+  const polar   = Math.acos(1 - 2 * v);              // distribution uniforme sur la sphère
+  const r = 1.05 + ((idx*7+13)%17)/100*0.22;
+  const vec = new THREE.Vector3();
+  vec.setFromSphericalCoords(r, polar, azimuth);
+  return vec;
+}
+
+/* ── Canvas texture (no globalAlpha – opacity lives on material) ── */
+function buildCanvas(text, temp, style, aff, count){
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  const cw = 320*dpr, ch = 90*dpr;
+  const cvs = document.createElement('canvas');
+  cvs.width = cw; cvs.height = ch;
+  const ctx = cvs.getContext('2d');
+  ctx.clearRect(0, 0, cw, ch);
+  ctx.scale(dpr, dpr);
+
+  const col = tempColor(temp);
+  const fw  = style > 65 ? '600' : '300';
+  const fi  = style < 35 ? 'italic ' : '';
+  const fs  = Math.max(14, 15 + (count-1)*4);
+
+  /* blur for very low affirmation */
+  if(aff < 38) ctx.filter = `blur(${Math.round((38-aff)/13)}px)`;
+
+  ctx.font = `${fi}${fw} ${fs}px "Cormorant Garamond",serif`;
+  ctx.fillStyle = '#' + col.getHexString();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 160, 45);
+  return cvs;
+}
+
+function makeSprite(text, temp, style, aff, count){
+  const cvs = buildCanvas(text, temp, style, aff, count);
+  const tex  = new THREE.CanvasTexture(cvs);
+  const mat  = new THREE.SpriteMaterial({
+    map: tex, transparent:true, depthWrite:false, depthTest:false,
+    opacity: affOpacity(aff)   /* base opacity – depth multiplier applied each frame */
+  });
+  const sp  = new THREE.Sprite(mat);
+  // Croissance logarithmique : rapide au début, ralentit naturellement. Plafond doux à 50 votes.
+  const cClamped = Math.min(count, 50);
+  const sc  = 0.70 + Math.log(cClamped) * 0.28;
+  sp.scale.set(sc*2.0, sc*0.60, 1);
+  sp.renderOrder = 1;
+  return sp;
+}
+
+function rebuildAll(text){
+  const entry = spriteMap[text];
+  if(!entry) return;
+  const c = freq[text];
+  const newSp = makeSprite(text, entry.data.temp, entry.data.style, entry.data.aff, c);
+  newSp.position.copy(entry.pos);
+  group.remove(entry.sprite);
+  entry.sprite.material.map.dispose();
+  entry.sprite.material.dispose();
+  group.add(newSp);
+  entry.sprite = newSp;
+}
+
+function updateCount(){
+  document.getElementById('wcount').textContent = uniqueCount + ' mots uniques déposés';
+}
+
+/* ── Add word ── */
+function addWord(text, temp, style, aff, animate, fromWorldPos){
+  const key = text.toLowerCase().trim();
+  if(!key) return;
+  if(!freq[key]){
+    freq[key] = 1; uniqueCount++;
+    const idx   = uniqueCount - 1;
+    const pos   = goldenPos(idx);
+    const sp    = makeSprite(key, temp, style, aff, 1);
+    spriteMap[key] = {sprite:sp, data:{temp,style,aff}, pos:pos.clone(), baseOpacity:affOpacity(aff)};
+    group.add(sp);
+
+    if(animate && fromWorldPos){
+      sp.position.copy(fromWorldPos);
+      let t0 = null;
+      const start = fromWorldPos.clone();
+      /* slight arc overshoot then settle */
+      const ctrl = pos.clone().lerp(start, 0.3).add(new THREE.Vector3(
+        (Math.random()-.5)*.6, .4, (Math.random()-.5)*.3
+      ));
+      (function anim(ts){
+        if(!t0) t0 = ts;
+        const raw = Math.min((ts-t0)/1200, 1);
+        /* ease out back (overshoot) */
+        const c1=1.70158, c3=c1+1;
+        const p = raw < 1 ? 1 + c3*Math.pow(raw-1,3) + c1*Math.pow(raw-1,2) : 1;
+        const ep = Math.min(Math.max(p,0),1.12);
+        /* quadratic bezier */
+        sp.position.lerpVectors(start.clone().lerp(ctrl, ep), ctrl.clone().lerp(pos, ep), ep);
+        /* small initial scale pop */
+        const popScale = 1 + 0.35*Math.sin(Math.PI*Math.min(raw,1));
+        const baseScale = (0.70 + Math.log(1) * 0.28) * 2.0;
+        sp.scale.set(baseScale*popScale, baseScale*0.60*popScale, 1);
+        if(raw < 1) requestAnimationFrame(anim);
+      })(performance.now());
+    } else {
+      sp.position.copy(pos);
+    }
+    updateCount();
+  } else {
+    freq[key]++;
+    const entry = spriteMap[key];
+    // Animer un fantôme qui vole de fromWorldPos vers la position du mot existant
+    if(animate && fromWorldPos){
+      const ghost = makeSprite(key, entry.data.temp, entry.data.style, entry.data.aff, freq[key]-1);
+      ghost.material.opacity = 0.6;
+      ghost.position.copy(fromWorldPos);
+      group.add(ghost);
+      const dest = entry.pos.clone();
+      const ctrl = dest.clone().lerp(fromWorldPos, 0.3).add(new THREE.Vector3(
+        (Math.random()-.5)*.5, .3, (Math.random()-.5)*.3
+      ));
+      let t0 = null;
+      (function anim(ts){
+        if(!t0) t0 = ts;
+        const raw = Math.min((ts-t0)/900, 1);
+        const ep = raw < 1 ? raw*raw*(3-2*raw) : 1; // smoothstep
+        ghost.position.lerpVectors(fromWorldPos.clone().lerp(ctrl, ep), ctrl.clone().lerp(dest, ep), ep);
+        ghost.material.opacity = 0.6 * (1 - raw);
+        if(raw < 1){
+          requestAnimationFrame(anim);
+        } else {
+          group.remove(ghost);
+          ghost.material.map.dispose(); ghost.material.dispose();
+          // Faire grossir le mot existant avec un pop
+          rebuildAll(key);
+          const sc = (0.70 + Math.log(Math.min(freq[key],50))*0.28);
+          const popSp = entry.sprite;
+          let p0 = null;
+          (function pop(ts){
+            if(!p0) p0=ts;
+            const pr = Math.min((ts-p0)/400,1);
+            const popScale = 1 + 0.4*Math.sin(Math.PI*pr);
+            popSp.scale.set(sc*2.0*popScale, sc*0.60*popScale, 1);
+            if(pr<1) requestAnimationFrame(pop);
+          })(performance.now());
+        }
+      })(performance.now());
+    } else {
+      rebuildAll(key);
+    }
+    spriteMap[key].baseOpacity = affOpacity(entry.data.aff);
+  }
+}
+
+SEEDS.forEach(w => addWord(w.text, w.temp, w.style, w.aff, false, null));
+
+/* ── UI refs ── */
+const prevEl    = document.getElementById('prev');
+const tooltipEl = document.getElementById('tooltip');
+const wiEl  = document.getElementById('wi');
+const ptEl  = document.getElementById('pt');
+const psEl  = document.getElementById('ps');
+const paEl  = document.getElementById('pa');
+
+function updatePreview(){
+  const txt = wiEl.value.trim();
+  if(!txt){ prevEl.style.opacity='0'; return; }
+  const t=+ptEl.value, s=+psEl.value, a=+paEl.value;
+  const col = tempColor(t);
+  prevEl.style.color       = '#'+col.getHexString();
+  prevEl.style.fontWeight  = s>65?'600':'300';
+  prevEl.style.fontStyle   = s<35?'italic':'normal';
+  prevEl.style.opacity     = affOpacity(a).toFixed(2);
+  prevEl.style.fontSize    = '22px';
+  prevEl.style.filter      = a<38?`blur(${Math.round((38-a)/13)}px)`:'none';
+  prevEl.textContent       = txt;
+}
+[wiEl,ptEl,psEl,paEl].forEach(el => el.addEventListener('input', updatePreview));
+wiEl.addEventListener('focus', ()=>{ if(wiEl.value.trim()) prevEl.style.opacity=affOpacity(+paEl.value).toFixed(2); });
+wiEl.addEventListener('blur',  ()=> setTimeout(()=>{ prevEl.style.opacity='0'; }, 400));
+
+function deposit(){
+  const txt = wiEl.value.trim();
+  if(!txt) return;
+  const t=+ptEl.value, s=+psEl.value, a=+paEl.value;
+  const from = new THREE.Vector3(0, -1.9, 0.8);
+  addWord(txt, t, s, a, true, from);
+  saveState();
+  wiEl.value=''; ptEl.value=50; psEl.value=50; paEl.value=50;
+  prevEl.style.opacity='0';
+  updatePreview();
+}
+document.getElementById('sbtn').addEventListener('click', deposit);
+wiEl.addEventListener('keydown', e=>{ if(e.key==='Enter') deposit(); });
+
+/* ── Drag / rotation ── */
+let isDrag=false, prevMouse={x:0,y:0};
+let velX=0, velY=0;
+
+appEl.addEventListener('mousedown', e=>{
+  if(e.target.closest('#ui')) return;
+  isDrag=true; appEl.classList.add('dragging');
+  prevMouse={x:e.clientX,y:e.clientY};
+  velX=0; velY=0;
+});
+window.addEventListener('mousemove', e=>{
+  if(!isDrag) return;
+  const dx=e.clientX-prevMouse.x, dy=e.clientY-prevMouse.y;
+  velX=dx*0.009; velY=dy*0.009;
+  group.rotation.y+=velX; group.rotation.x+=velY;
+  prevMouse={x:e.clientX,y:e.clientY};
+});
+window.addEventListener('mouseup', ()=>{ isDrag=false; appEl.classList.remove('dragging'); });
+
+/* ── Touch ── */
+appEl.addEventListener('touchstart', e=>{
+  if(e.target.closest('#ui')) return;
+  const t=e.touches[0];
+  isDrag=true; prevMouse={x:t.clientX,y:t.clientY}; velX=0; velY=0;
+},{passive:true});
+appEl.addEventListener('touchmove', e=>{
+  if(!isDrag) return;
+  const t=e.touches[0];
+  const dx=t.clientX-prevMouse.x, dy=t.clientY-prevMouse.y;
+  velX=dx*0.009; velY=dy*0.009;
+  group.rotation.y+=velX; group.rotation.x+=velY;
+  prevMouse={x:t.clientX,y:t.clientY};
+},{passive:true});
+appEl.addEventListener('touchend', ()=>{ isDrag=false; });
+
+/* ── Hover / raycasting ── */
+const raycaster = new THREE.Raycaster();
+raycaster.params.Sprite = {threshold:0.05};
+const mouse2d  = new THREE.Vector2(-9999,-9999);
+let hoveredKey = null;
+
+appEl.addEventListener('mousemove', e=>{
+  if(isDrag){ mouse2d.set(-9999,-9999); return; }
+  if(e.target.closest('#ui')){ mouse2d.set(-9999,-9999); return; }
+  const rect = renderer.domElement.getBoundingClientRect();
+  mouse2d.x  = ((e.clientX-rect.left)/rect.width)*2-1;
+  mouse2d.y  = -((e.clientY-rect.top)/rect.height)*2+1;
+  /* store screen pos for tooltip */
+  appEl._mx = e.clientX - rect.left;
+  appEl._my = e.clientY - rect.top;
+});
+appEl.addEventListener('mouseleave', ()=>{ mouse2d.set(-9999,-9999); });
+
+/* ── Depth update (called every frame) ── */
+const tmpVec = new THREE.Vector3();
+function updateDepth(){
+  const allSprites = Object.values(spriteMap).map(e=>e.sprite);
+
+  /* hover detection */
+  raycaster.setFromCamera(mouse2d, camera);
+  const hits = raycaster.intersectObjects(allSprites);
+  const newHover = hits.length>0
+    ? Object.keys(spriteMap).find(k=>spriteMap[k].sprite===hits[0].object)||null
+    : null;
+
+  if(newHover !== hoveredKey){
+    hoveredKey = newHover;
+    appEl.style.cursor = hoveredKey ? 'pointer' : (isDrag?'grabbing':'grab');
+  }
+
+  /* show / hide tooltip */
+  if(hoveredKey && spriteMap[hoveredKey]){
+    tooltipEl.style.opacity='1';
+    tooltipEl.style.left   = (appEl._mx||0)+'px';
+    tooltipEl.style.top    = (appEl._my||0)+'px';
+    const d = spriteMap[hoveredKey].data;
+    const tf = d.temp<40?'froid':d.temp>65?'chaud':'tempéré';
+    const sf = d.style<35?'doux':d.style>65?'tranchant':'neutre';
+    tooltipEl.textContent  = `${tf} · ${sf} · ×${freq[hoveredKey]}`;
+  } else {
+    tooltipEl.style.opacity='0';
+  }
+
+  /* per-sprite depth scale + opacity + renderOrder */
+  Object.entries(spriteMap).forEach(([key, entry])=>{
+    entry.sprite.getWorldPosition(tmpVec);
+    const z = tmpVec.z;
+    /* sphere max r ~1.27 → range roughly -1.3 to +1.3 */
+    const t = Math.max(0, Math.min(1, (z+1.35)/2.7));
+
+    const depthScale = 0.45 + t*1.1;            /* 0.45 (back) → 1.55 (front) */
+    const depthOpac  = 0.08 + t*0.92;            /* 0.08 (back) → 1.00 (front) */
+    const count      = freq[key]||1;
+    const base       = 0.70 + (count-1)*0.13;
+    const hoverBoost = (key===hoveredKey) ? 1.22 : 1.0;
+
+    entry.sprite.scale.set(
+      base*2.0*depthScale*hoverBoost,
+      base*0.60*depthScale*hoverBoost,
+      1
+    );
+    entry.sprite.material.opacity  = entry.baseOpacity * depthOpac;
+    entry.sprite.renderOrder       = Math.round(t*100);
+  });
+}
+
+/* ── Sphere breathing ── */
+let breathT = 0;
+function updateBreath(dt){
+  breathT += dt * 0.5;
+  const s = 1 + Math.sin(breathT)*0.006;
+  sphereMesh.scale.setScalar(s);
+}
+
+/* ── Main render loop ── */
+let introStarted=false, introDone=false, introElapsed=0;
+const INTRO_DUR=4.5;
+let lastTs = 0;
+const uiEl = document.getElementById('ui');
+
+function animate(ts){
+  requestAnimationFrame(animate);
+  const dt = Math.min((ts - (lastTs||ts))/1000, 0.05);
+  lastTs = ts;
+
+  if(!introStarted){ introStarted=true; return; }
+
+  if(!introDone){
+    introElapsed += dt;
+    group.rotation.y += 0.008;
+    group.rotation.x  = Math.sin(introElapsed*0.5)*0.10;
+    if(introElapsed >= INTRO_DUR){ introDone=true; uiEl.classList.add('on'); }
+  } else if(!isDrag){
+    velX *= 0.91;                /* smoother deceleration */
+    velY *= 0.91;
+    group.rotation.y += 0.0022 + velX;
+    group.rotation.x += velY;
+    group.rotation.x *= 0.97;
+  } else {
+    /* while dragging, still dampen for feel */
+    group.rotation.x *= 0.995;
+  }
+
+  updateBreath(dt);
+  updateDepth();
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(animate);
+
+/* ── Persistence ── */
+async function saveState(){
+  try{
+    await window.storage.set('mots_plas_v4', JSON.stringify({
+      freq,
+      spriteData: Object.fromEntries(Object.entries(spriteMap).map(([k,v])=>[k,v.data]))
+    }));
+  }catch(e){}
+}
+async function loadState(){
+  try{
+    const r = await window.storage.get('mots_plas_v4');
+    if(!r||!r.value) return;
+    const saved = JSON.parse(r.value);
+    if(saved.freq && saved.spriteData){
+      Object.keys(saved.freq).forEach(txt=>{
+        if(!SEEDS.find(s=>s.text===txt)){
+          const d = saved.spriteData[txt]||{temp:50,style:50,aff:50};
+          const c = saved.freq[txt]||1;
+          for(let i=0;i<c;i++) addWord(txt,d.temp,d.style,d.aff,false,null);
+        }
+      });
+    }
+  }catch(e){}
+}
+loadState();
+</script>
+</body>
+</html>
