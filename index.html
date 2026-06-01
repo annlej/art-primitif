@@ -670,7 +670,7 @@ setInterval(async () => {
 // ═══════════════════════════════════════════════════════════════
 //  ANIMATION LOOP
 // ═══════════════════════════════════════════════════════════════
-let heartT = 0, lastTs = 0, introDone = false, introT = 0;
+let heartT = 0, breathT = 0, lastTs = 0, introDone = false, introT = 0;
 const INTRO_DUR = 3.5;
 
 function animate(ts) {
@@ -691,12 +691,14 @@ function animate(ts) {
     group.rotation.x *= 0.97;
   }
 
-  // Heartbeat — lub-dub à ~50 bpm, tout le groupe pulse ensemble
-  heartT = (heartT + dt * 0.83) % 1.0;  // 50 bpm = 0.83 cycles/s
-  const lub = Math.exp(-Math.pow((heartT - 0.08) / 0.055, 2)) * 0.030;
-  const dub = Math.exp(-Math.pow((heartT - 0.26) / 0.045, 2)) * 0.015;
-  group.scale.setScalar(1 + lub + dub);
-  sphereMesh.scale.setScalar(1);
+  // Matifi de la sphère — apparaît et s'estompe pendant la rotation (comme avant)
+  breathT += dt * 0.38;
+  const breathScale = 1 + Math.sin(breathT) * 0.022 + Math.sin(breathT * 1.7) * 0.008;
+  sphereMesh.scale.setScalar(breathScale);
+
+  // Respiration méditative — très subtile, cycle lent ~7s, ±0.8%
+  heartT += dt * 0.14;
+  group.scale.setScalar(1 + Math.sin(heartT) * 0.008);
 
   // Hover
   raycaster.setFromCamera(mouse2d, camera);
