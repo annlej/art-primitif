@@ -614,7 +614,7 @@ async function submitWord() {
 
   const ip = await getIP();
   const ok = await dbInsert(mot, temp, style, aff, ip);
-  if (ok) { addLog(mot, ip, new Date().toISOString()); showStatus('mot déposé —'); }
+  if (ok) { dbRowCount++; addLog(mot, ip, new Date().toISOString()); showStatus('mot déposé —'); }
   else showStatus('connexion impossible');
 }
 
@@ -627,23 +627,20 @@ document.getElementById('word-input').addEventListener('keydown', e => { if (e.k
 let dbRowCount = 0;
 
 async function initFromDB() {
-  // 1. Affichage immédiat des seeds en local (offline-first)
-  for (const s of SEEDS) addOrUpdate(s.text, s.temp, s.style, s.aff, false);
-  updateCount();
-
-  // 2. Synchronisation DB en arrière-plan
   try {
     const rows = await dbFetchAll();
     const count = Array.isArray(rows) ? rows.length : 0;
 
     if (count === 0) {
-      // DB vide : insérer les seeds
+      // DB vide : afficher seeds localement PUIS insérer en DB
+      for (const s of SEEDS) addOrUpdate(s.text, s.temp, s.style, s.aff, false);
+      updateCount();
       for (const s of SEEDS) {
         await dbInsert(s.text, s.temp, s.style, s.aff, 'seed');
       }
       dbRowCount = SEEDS.length;
     } else {
-      // DB a des données : mettre à jour l'affichage depuis la DB
+      // DB a des données : charger UNIQUEMENT depuis DB (pas de seeds locaux)
       dbRowCount = count;
       const ordered = [...rows].reverse();
       for (const row of ordered) addOrUpdate(row.mot, row.temperature, row.style, row.affirmation, false);
@@ -651,8 +648,10 @@ async function initFromDB() {
       updateCount();
     }
   } catch(e) {
-    // DB inaccessible : on garde l'affichage local, la page reste utilisable
+    // DB inaccessible : afficher seeds localement en fallback
     console.warn('DB inaccessible, mode local :', e);
+    for (const s of SEEDS) addOrUpdate(s.text, s.temp, s.style, s.aff, false);
+    updateCount();
   }
 }
 
