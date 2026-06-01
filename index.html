@@ -28,17 +28,27 @@ body {
 #header h1 {
   font-family: 'Cormorant Garamond', serif;
   font-weight: 300;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
   color: #1E1E1E;
 }
 #header .sub {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.78rem;
+  font-style: italic;
+  color: #555;
+  letter-spacing: 0.05em;
+  margin-top: 6px;
+  max-width: 520px;
+  line-height: 1.6;
+}
+#header .instruction {
   font-family: 'DM Mono', monospace;
-  font-size: 0.58rem;
+  font-size: 0.52rem;
   color: #999;
   letter-spacing: 0.12em;
-  margin-top: 5px;
+  margin-top: 7px;
 }
 
 /* ─── LOG ─── */
@@ -163,8 +173,9 @@ input[type=range]::-webkit-slider-thumb {
 <body>
 
 <div id="header">
-  <h1>Art —</h1>
-  <div class="sub">proposer un autre mot que « primitif »</div>
+  <h1>From Anywhere</h1>
+  <div class="sub">Primi-quoi ? Définir collectivement un autre mot que « primitif » pour qualifier l'art ainsi reconnu…</div>
+  <div class="instruction">Proposez un autre mot dans la zone de saisie ci-dessous, avec son aura plastique.</div>
 </div>
 
 <div id="log"></div>
@@ -256,6 +267,7 @@ window.addEventListener('resize', () => {
 });
 
 const group = new THREE.Group();
+group.position.y = 0.20;   // décale la sphère vers le haut, s'adapte proportionnellement à toutes tailles
 scene.add(group);
 
 // Sphere mesh — translucent, warm tone like v4
@@ -698,7 +710,7 @@ function animate(ts) {
 
   // Respiration méditative — très subtile, cycle lent ~7s, ±0.8%
   heartT += dt * 0.14;
-  group.scale.setScalar(1 + Math.sin(heartT) * 0.008);
+  group.scale.setScalar(1 + Math.sin(heartT) * 0.020);
 
   // Hover
   raycaster.setFromCamera(mouse2d, camera);
